@@ -21,30 +21,84 @@ import com.droidlogic.tvinput.R;
 
 import android.content.Context;
 import android.content.pm.ResolveInfo;
+import android.content.Intent;
 import android.media.tv.TvInputHardwareInfo;
 import android.media.tv.TvInputInfo;
 import android.media.tv.TvStreamConfig;
 import android.media.tv.TvInputManager.Hardware;
 import android.os.Bundle;
+import android.os.Handler;
 import android.text.TextUtils;
 import java.util.HashMap;
 import java.util.Map;
 import android.view.Surface;
 import android.net.Uri;
 import android.media.tv.TvInputManager;
+import android.hardware.hdmi.HdmiControlManager;
+import android.hardware.hdmi.HdmiHotplugEvent;
+
 
 public class ArcInputService extends DroidLogicTvInputService {
     private static final String TAG = ArcInputService.class.getSimpleName();
     private static final String SYS_NODE_EARC = "/sys/class/extcon/earcrx/state";
+
     private ArcInputSession mCurrentSession;
     private int id = 0;
     private Map<Integer, ArcInputSession> sessionMap = new HashMap<>();
     private SystemControlManager mSystemControlManager;
+    private HdmiControlManager mHdmiControlManager;
+
+    private HdmiControlManager.HotplugEventListener mHotplugListener;
+    private boolean mIsMain;
+
+    private static final long DELAY_GO_HOME = 5000;
+    private Handler mHandler = new Handler();
+    private Runnable mRunnableGoHome = ()->{
+        Utils.logd(TAG, "Go to launcher");
+        try {
+            Intent activityIntent = new Intent(Intent.ACTION_MAIN)
+                    .addCategory(Intent.CATEGORY_HOME)
+                    .setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP
+                    | Intent.FLAG_ACTIVITY_SINGLE_TOP
+                    | Intent.FLAG_ACTIVITY_NEW_TASK
+                    | Intent.FLAG_ACTIVITY_NO_ANIMATION);
+            getApplicationContext().startActivity(activityIntent);
+        } catch (Exception e) {
+            Utils.loge(TAG, "Can't find activity to switch to HOME" + e);
+        }
+    };
 
     @Override
     public void onCreate() {
         super.onCreate();
         initInputService(DroidLogicTvUtils.DEVICE_ID_ARC, ArcInputService.class.getName());
+
+        try {
+            mHdmiControlManager = (HdmiControlManager) getApplicationContext().getSystemService(Context.HDMI_CONTROL_SERVICE);
+        } catch (Exception e) {
+            Utils.loge(TAG, "failed to get hdmi control manager:" + e);
+        }
+        if (mHdmiControlManager != null) {
+            mHotplugListener= (HdmiHotplugEvent event)->{
+                Utils.logd(TAG, "Hotplug " + event);
+                if (event.getPort() == 0) {
+                    mHandler.removeCallbacks(mRunnableGoHome);
+                    if (!event.isConnected()) {
+                        mHandler.postDelayed(mRunnableGoHome, DELAY_GO_HOME);
+                    }
+                }
+            };
+            mHdmiControlManager.addHotplugEventListener(mHotplugListener);
+        }
+
+    }
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        if (mHdmiControlManager != null) {
+            mHdmiControlManager.removeHotplugEventListener(mHotplugListener);
+        }
     }
 
     @Override
@@ -127,6 +181,13 @@ public class ArcInputService extends DroidLogicTvInputService {
                 }
             }
         }
+
+        @Override
+        public void onSetMain(boolean isMain) {
+            super.onSetMain(isMain);
+            mIsMain = isMain;
+        }
+
     }
 
     public String getDeviceClassName() {
