@@ -79,9 +79,12 @@ public class ArcInputService extends DroidLogicTvInputService {
             Utils.loge(TAG, "failed to get hdmi control manager:" + e);
         }
         if (mHdmiControlManager != null) {
-            mHotplugListener= (HdmiHotplugEvent event)->{
+            mHotplugListener = (HdmiHotplugEvent event)->{
+                if (mHdmiControlManager.getSoundbarMode() == HdmiControlManager.SOUNDBAR_MODE_DISABLED) {
+                    return;
+                }
                 Utils.logd(TAG, "Hotplug " + event);
-                if (event.getPort() == 0) {
+                if (event.getPort() == 0 && mIsMain) {
                     mHandler.removeCallbacks(mRunnableGoHome);
                     if (!event.isConnected()) {
                         mHandler.postDelayed(mRunnableGoHome, DELAY_GO_HOME);
