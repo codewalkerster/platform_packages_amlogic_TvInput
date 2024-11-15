@@ -28,6 +28,7 @@ import android.media.tv.TvStreamConfig;
 import android.media.tv.TvInputManager.Hardware;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.SystemProperties;
 import android.text.TextUtils;
 import java.util.HashMap;
 import java.util.Map;
@@ -51,7 +52,8 @@ public class ArcInputService extends DroidLogicTvInputService {
     private HdmiControlManager.HotplugEventListener mHotplugListener;
     private boolean mIsMain;
 
-    private static final long DELAY_GO_HOME = 5000;
+    private static final int DELAY_GO_HOME
+            = SystemProperties.getInt("vendor.tv.soundbar.go_home", 8000);
     private Handler mHandler = new Handler();
     private Runnable mRunnableGoHome = ()->{
         Utils.logd(TAG, "Go to launcher");
@@ -81,6 +83,10 @@ public class ArcInputService extends DroidLogicTvInputService {
         if (mHdmiControlManager != null) {
             mHotplugListener = (HdmiHotplugEvent event)->{
                 if (mHdmiControlManager.getSoundbarMode() == HdmiControlManager.SOUNDBAR_MODE_DISABLED) {
+                    return;
+                }
+                // Turn off go home function.
+                if (DELAY_GO_HOME == 0) {
                     return;
                 }
                 Utils.logd(TAG, "Hotplug " + event);
