@@ -44,7 +44,7 @@ import android.widget.Toast;
 import java.lang.reflect.Method;
 import java.lang.reflect.Field;
 
-import com.droidlogic.app.AudioSystemCmdManager;
+import com.droidlogic.app.DroidAudioManager;
 import com.droidlogic.tvinput.Utils;
 
 import com.droidlogic.app.tv.TvDataBaseManager;
@@ -205,7 +205,7 @@ public class DTVInputService extends DroidLogicTvInputService implements TvContr
     protected DTVSessionImpl mCurrentSession;
     protected int id = 0;
     protected TvControlManager mTvControlManager;
-    private AudioSystemCmdManager mAudioSystemCmdManager;
+    private DroidAudioManager mDroidAudioManager;
     protected static boolean isTvPlaying = false;
     protected TvTime mTvTime = null;
     private boolean mHasPreferLanguageFeature = false;
@@ -271,7 +271,7 @@ public class DTVInputService extends DroidLogicTvInputService implements TvContr
 
         mTvControlManager = TvControlManager.getInstance();
         if (DEBUG) Log.d(TAG,"oncreate:Set EAS listener as TvInput");
-        mAudioSystemCmdManager = AudioSystemCmdManager.getInstance(this);
+        mDroidAudioManager = DroidAudioManager.getInstance(this);
         mEASProcessManager = new EASProcessManager(this);
         mTvControlManager.setEasListener(this);
         mTvTime = new TvTime(this);
@@ -894,20 +894,20 @@ public class DTVInputService extends DroidLogicTvInputService implements TvContr
                                 case MSG_MIX_AD_MAIN:
                                     if (DEBUG) Log.d(TAG, "receive MSG_MIX_AD_MAIN arg1 = " + msg.arg1);
                                     if (msg.arg1 > 0) {
-                                        //handleAdtvAudioEvent(AudioSystemCmdManager.AUDIO_SERVICE_CMD_AD_MIX_SUPPORT, 1, 0);
-                                        handleAdtvAudioEvent(AudioSystemCmdManager.AUDIO_SERVICE_CMD_AD_MIX_LEVEL, 0, mAudioADMixingLevel);
-                                        handleAdtvAudioEvent(AudioSystemCmdManager.AUDIO_SERVICE_CMD_AD_SET_VOLUME, mAudioADVolume, 0);
+                                        //handleAdtvAudioEvent(DroidAudioManager.DROID_AUDIO_CMD_AD_MIX_SUPPORT, 1, 0);
+                                        handleAdtvAudioEvent(DroidAudioManager.DROID_AUDIO_CMD_AD_MIX_LEVEL, 0, mAudioADMixingLevel);
+                                        handleAdtvAudioEvent(DroidAudioManager.DROID_AUDIO_CMD_AD_SET_VOLUME, mAudioADVolume, 0);
                                     } else {
-                                        //handleAdtvAudioEvent(AudioSystemCmdManager.AUDIO_SERVICE_CMD_AD_MIX_SUPPORT, 0, 0);
+                                        //handleAdtvAudioEvent(DroidAudioManager.DROID_AUDIO_CMD_AD_MIX_SUPPORT, 0, 0);
                                     }
                                     break;
                                 case MSG_MIX_AD_LEVEL:
                                     if (DEBUG) Log.d(TAG, "receive MSG_MIX_AD_LEVEL arg1 = " + msg.arg1);
-                                    handleAdtvAudioEvent(AudioSystemCmdManager.AUDIO_SERVICE_CMD_AD_MIX_LEVEL, 0, msg.arg1);
+                                    handleAdtvAudioEvent(DroidAudioManager.DROID_AUDIO_CMD_AD_MIX_LEVEL, 0, msg.arg1);
                                     break;
                                 case MSG_MIX_AD_SET_VOLUME:
                                     Log.i(TAG,"receive MSG_MIX_AD_SET_VOLUME = " + msg.arg1);
-                                    handleAdtvAudioEvent(AudioSystemCmdManager.AUDIO_SERVICE_CMD_AD_SET_VOLUME, msg.arg1, 0);
+                                    handleAdtvAudioEvent(DroidAudioManager.DROID_AUDIO_CMD_AD_SET_VOLUME, msg.arg1, 0);
                                     break;
                                 case MSG_UPDATE_VIDEO_RESOLUTION:
                                     //Log.d(TAG,"receive MSG_UPDATE_VIDEO_RESOLUTION");
@@ -3401,11 +3401,11 @@ public class DTVInputService extends DroidLogicTvInputService implements TvContr
             AudioManager audioManager = (AudioManager) mContext.getSystemService(Context.AUDIO_SERVICE);
             if (DEBUG) Log.d(TAG, "startAudioADMainMix audioADAutoStart = " + audioADAutoStart + ", mAudioADMixingLevel = " + mAudioADMixingLevel);
             if (audioADAutoStart) {
-                //handleAdtvAudioEvent(AudioSystemCmdManager.AUDIO_SERVICE_CMD_AD_DUAL_SUPPORT, 1, 0);
+                //handleAdtvAudioEvent(DroidAudioManager.DROID_AUDIO_CMD_AD_DUAL_SUPPORT, 1, 0);
                 audioManager.setParameters("ad_switch_enable=" + 1);
             } else {
-                //handleAdtvAudioEvent(AudioSystemCmdManager.AUDIO_SERVICE_CMD_AD_DUAL_SUPPORT, 0, 0);
-                //handleAdtvAudioEvent(AudioSystemCmdManager.AUDIO_SERVICE_CMD_AD_MIX_SUPPORT, 0, 0);
+                //handleAdtvAudioEvent(DroidAudioManager.DROID_AUDIO_CMD_AD_DUAL_SUPPORT, 0, 0);
+                //handleAdtvAudioEvent(DroidAudioManager.DROID_AUDIO_CMD_AD_MIX_SUPPORT, 0, 0);
                 audioManager.setParameters("ad_switch_enable=" + 0);
                 if (DEBUG) Log.d(TAG, "startAudioADMainMix no need to mix");
             }
@@ -3451,10 +3451,10 @@ public class DTVInputService extends DroidLogicTvInputService implements TvContr
             }
             if (main != null && ad != null) {
                 if (findAdTrackIndex == mainAudioTrackIndex) {
-                    //handleAdtvAudioEvent(AudioSystemCmdManager.AUDIO_SERVICE_CMD_AD_MIX_SUPPORT, 1, 0);
-                    //handleAdtvAudioEvent(AudioSystemCmdManager.AUDIO_SERVICE_CMD_AD_MIX_LEVEL, mAudioADMixingLevel, 0);
+                    //handleAdtvAudioEvent(DroidAudioManager.DROID_AUDIO_CMD_AD_MIX_SUPPORT, 1, 0);
+                    //handleAdtvAudioEvent(DroidAudioManager.DROID_AUDIO_CMD_AD_MIX_LEVEL, mAudioADMixingLevel, 0);
                 } else {
-                    //handleAdtvAudioEvent(AudioSystemCmdManager.AUDIO_SERVICE_CMD_AD_MIX_SUPPORT, 0, 0);
+                    //handleAdtvAudioEvent(DroidAudioManager.DROID_AUDIO_CMD_AD_MIX_SUPPORT, 0, 0);
                 }
                 startAudioAD(channelInfo, findAdTrackIndex);
                 mTvControlManager.DtvSwitchAudioTrack(main.mPid, main.mFormat, 0);
@@ -3470,7 +3470,7 @@ public class DTVInputService extends DroidLogicTvInputService implements TvContr
 
                 if (DEBUG) Log.d(TAG, " startAudioADMainMix find ad and main audio");
             } else {
-                //handleAdtvAudioEvent(AudioSystemCmdManager.AUDIO_SERVICE_CMD_AD_MIX_SUPPORT, 0, 0);
+                //handleAdtvAudioEvent(DroidAudioManager.DROID_AUDIO_CMD_AD_MIX_SUPPORT, 0, 0);
                 if (DEBUG) Log.d(TAG, " startAudioADMainMix not find ad and main audio");
             }
         }
@@ -5347,11 +5347,11 @@ public class DTVInputService extends DroidLogicTvInputService implements TvContr
     }
 
     public void handleAdtvAudioEvent(int cmd, int param1, int param2){
-        if (mAudioSystemCmdManager == null) {
-            Log.e(TAG, "handleAdtvAudioEvent mAudioSystemCmdManager is null, return");
+        if (mDroidAudioManager == null) {
+            Log.e(TAG, "handleAdtvAudioEvent mDroidAudioManager is null, return");
             return;
         }
-        mAudioSystemCmdManager.handleAdtvAudioEvent(cmd, param1, param2);
+        mDroidAudioManager.setAudioCmdParam(cmd, param1, param2, 0);
     }
 
     public TvContentRating[] parseParentalRatings(int parentalRating, String title)

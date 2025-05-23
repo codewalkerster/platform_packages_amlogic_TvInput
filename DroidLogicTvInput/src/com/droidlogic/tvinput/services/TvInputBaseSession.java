@@ -17,6 +17,7 @@ import android.hardware.hdmi.HdmiControlManager;
 import android.hardware.hdmi.HdmiTvClient;
 import android.hardware.hdmi.HdmiDeviceInfo;
 import android.hardware.hdmi.HdmiTvClient.SelectCallback;
+import android.media.AudioManager;
 import android.media.tv.TvContentRating;
 import android.media.tv.TvInputManager;
 import android.media.tv.TvInputService;
@@ -42,7 +43,7 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import com.droidlogic.app.AudioSystemCmdManager;
+import com.droidlogic.app.DroidAudioManager;
 import com.droidlogic.app.DataProviderManager;
 import com.droidlogic.app.SystemControlManager;
 import com.droidlogic.app.SystemControlEvent;
@@ -85,7 +86,7 @@ public abstract class TvInputBaseSession extends TvInputService.Session implemen
     public int mId;
     private String mInputId;
     private int mDeviceId;
-    private AudioSystemCmdManager mAudioSystemCmdManager;
+    private DroidAudioManager mDroidAudioManager;
     private TvInputManager mTvInputManager;
     private boolean mHasRetuned = false;
     protected Handler mSessionHandler;
@@ -102,6 +103,7 @@ public abstract class TvInputBaseSession extends TvInputService.Session implemen
     private boolean isHdmiDevice = false;
     private String mHdmiHdrInfo = null;
     private String mHdmiAudioFormatInfo = null;
+    private AudioManager mAudioManager;
     //msg to dolby vision flag
     private int mCheckDolbyVisonCount = 0;
 
@@ -118,7 +120,8 @@ public abstract class TvInputBaseSession extends TvInputService.Session implemen
         mSystemControlEvent.setHdrInfoListener(this);
         setSessionStateMachine(SESSION_CTEATED);
 
-        mAudioSystemCmdManager = AudioSystemCmdManager.getInstance(mContext);
+        mDroidAudioManager = DroidAudioManager.getInstance(mContext);
+        mAudioManager = (AudioManager) mContext.getSystemService(Context.AUDIO_SERVICE);
         mTvControlManager = TvControlManager.getInstance();
         mSessionHandler = new Handler(context.getMainLooper(), this);
         mTvInputManager = (TvInputManager)mContext.getSystemService(Context.TV_INPUT_SERVICE);
@@ -350,32 +353,24 @@ public abstract class TvInputBaseSession extends TvInputService.Session implemen
 
     private void setAudiodMute(boolean mute) {
         Log.d(TAG, "setAudiodMute="+mute);
-        handleAdtvAudioEvent(AudioSystemCmdManager.AUDIO_SERVICE_CMD_SET_MUTE, mute ? 1 : 0, 0);
+        setParameters("hal_param_tv_mute=" + (mute ? 1 : 0));
         mTvControlManager.SetAudioMute(mute ? 1 : 0);
     }
 
-    public void updateAudioPortGain(int srcType){
-        mAudioSystemCmdManager.updateAudioPortGain(srcType);
-    }
-
     public void openTvAudio (int type){
-        mAudioSystemCmdManager.openTvAudio(type);
-    }
-
-    public void closeTvAudio (){
-        mAudioSystemCmdManager.closeTvAudio();
+        mDroidAudioManager.openTvAudio(type);
     }
 
     public void handleAdtvAudioEvent (int cmd, int param1, int param2){
-        mAudioSystemCmdManager.handleAdtvAudioEvent(cmd, param1, param2);
+        mDroidAudioManager.setAudioCmdParam(cmd, param1, param2, 0);
     }
 
     public void setParameters(String arg) {
-        mAudioSystemCmdManager.setParameters(arg);
+        mAudioManager.setParameters(arg);
     }
 
     public String getParameters(String arg) {
-        return mAudioSystemCmdManager.getParameters(arg);
+        return mAudioManager.getParameters(arg);
     }
 
     @Override
